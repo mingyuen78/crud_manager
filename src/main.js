@@ -1,5 +1,5 @@
 import 'devextreme/dist/css/dx.common.css';
-import 'devextreme/dist/css/dx.carmine.compact.css';
+import 'devextreme/dist/css/dx.material.teal.light.compact.css';
 import Vue from 'vue'
 import App from './App.vue'
 import axios from 'axios'

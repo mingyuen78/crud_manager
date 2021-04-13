@@ -13,6 +13,8 @@
       :row-alternation-enabled="true"
       :selection="{ mode: 'single' }"
       :repaint-changes-only="true"
+      @initialized="onGridInitialized"
+      @selection-changed="onSelectionChanged"
     >
       <DxSorting mode="multiple" />
       <DxColumnChooser :enabled="true" mode="select" />
@@ -39,19 +41,25 @@
         :format="column.format"
       >
       </DxColumn>
+      <DxEditing
+        :allow-updating="true"
+        :allow-deleting="true"
+        :select-text-on-edit-start="selectTextOnEditStart"
+        :start-edit-action="startEditAction"
+        mode="batch"
+      />
+      <DxPaging v-bind:page-size="defaultPageSize" />
+      <DxPager
+        :show-info="true"
+        :show-page-size-selector="true"
+        :show-navigation-buttons="true"
+        info-text="Page #{0}. Total: {1} ({2} Record(s))"
+      />
     </DxDataGrid>
   </div>
 </template>
 
 <script>
-var URL;
-if (window.location.href.indexOf("localhost") == -1) {
-  //live.
-  URL = "https://carnival.shopperplus.com.my";
-} else {
-  URL = "http://localhost:8000";
-}
-
 import {
   DxDataGrid,
   DxColumn,
@@ -61,6 +69,9 @@ import {
   DxHeaderFilter,
   DxFilterRow,
   DxSorting,
+  DxEditing,
+  DxPaging,
+  DxPager,
   DxRemoteOperations,
 } from "devextreme-vue/data-grid";
 import CustomStore from "devextreme/data/custom_store";
@@ -76,33 +87,37 @@ export default {
     DxHeaderFilter,
     DxFilterRow,
     DxSorting,
+    DxEditing,
+    DxPaging,
+    DxPager,
     DxRemoteOperations,
   },
   props: {
     title: String,
-    controller: String,
+    select_url: String,
+    update_url: String,
+    delete_url: String,
+    insert_url: String,
     columns: Array,
   },
   data: function () {
     return {
-      currentLoadType: "grid",
+      startEditAction: "click",
+      closeOnOutsideClick: false,
+      selectTextOnEditStart: true,
       headerFilterSize: 20,
-      defaultPageSize: 150,
+      defaultPageSize: 20,
       prevTotalCount: 0,
       datasource: new CustomStore({
         key: "id",
         load: (loadOptions) =>
-          this.sendRequest(
-            `${URL}/${this.controller}/dg_select`,
-            "post",
-            loadOptions
-          ),
-        update: (key, values) => {
-          console.log(key, values);
-        },
-        remove: (key, values) => {
-          console.log(key, values);
-        },
+          this.sendSelectRequest(this.select_url, "post", loadOptions),
+        update: (key, values) =>
+          this.sendCrudRequest(this.update_url, "post", key, values),
+        insert: (values) =>
+          this.sendCrudRequest(this.insert_url, "post", null, values),
+        remove: (key) =>
+          this.sendCrudRequest(this.delete_url, "post", key, null),
       }),
     };
   },
@@ -110,12 +125,41 @@ export default {
   mounted: function () {},
   methods: {
     defaultOptionOverride(_data) {
+      _data.take = this.defaultPageSize;
       _data.defaultSort = [{ selector: "id", desc: 1 }];
       return _data;
     },
-    sendRequest(_url, _method, _data) {
-      console.log("Sending Config Request", _data);
-      let _this = this;
+    onSelectionChanged({ selectedRowsData }) {
+      const data = selectedRowsData[0];
+      this.$emit("gridSelected", data);
+    },
+    onGridInitialized(e) {
+      this.$emit("gridInitialized", e);
+    },
+    sendCrudRequest(_url, _method, _key, _values) {
+      // if _key is null meaning is insert. else is delete/edit.
+      // crudRequest is more dedicated because it doesnt have
+      // loadOptions.
+      const options = {
+        method: _method,
+        url: _url,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        data: [{ data: _values, pk: "id", id: _key }],
+      };
+      console.log(options);
+      return this.axios
+        .request(options)
+        .then(function (response) {
+          console.log("response", response);
+        })
+        .catch(function (error) {
+          console.error(error);
+          return null;
+        });
+    },
+    sendSelectRequest(_url, _method, _data) {
       const options = {
         method: _method,
         url: _url,
@@ -124,7 +168,7 @@ export default {
         },
         data: this.defaultOptionOverride(_data),
       };
-      _this.prevFilter = _data;
+
       return this.axios
         .request(options)
         .then(function (response) {

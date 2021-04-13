@@ -1,16 +1,16 @@
 <template>
   <div id="app">
-    <MasterPage title="Game Type" />
+    <GameTypePage title="Game Type" />
   </div>
 </template>
 
 <script>
-import MasterPage from "./components/MasterPage.vue";
+import GameTypePage from "./components/GameTypePage.vue";
 
 export default {
   name: "App",
   components: {
-    MasterPage,
+    GameTypePage,
   },
 };
 </script>
@@ -18,5 +18,8 @@ export default {
 <style>
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-size: 1.1em;
+  color: #111;
+  font-weight: 600;
 }
 </style>

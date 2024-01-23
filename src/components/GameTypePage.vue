@@ -50,7 +50,7 @@ import FormView from "../components/FormView";
 var BASEURL;
 if (window.location.href.indexOf("localhost") == -1) {
   //live.
-  BASEURL = "https://carnival.shopperplus.com.my";
+  BASEURL = "https://sample.somesite.com";
 } else {
   BASEURL = "http://localhost:8090";
 }
